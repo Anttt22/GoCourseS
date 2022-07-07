@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"time"
 )
 
 type ResponseHandler struct {
@@ -13,17 +14,59 @@ func (rh ResponseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, rh.message)
 }
 
+type ResponseHandler2 struct {
+	message string
+}
+
+func (rh2 ResponseHandler2) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, rh2.message)
+}
+
+type ResponseHandler3 struct {
+	message string
+}
+
+type SourceHandler struct {
+	message string
+}
+
+func (rh3 ResponseHandler3) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(1 * time.Second)
+	fmt.Fprintf(w, "Request timeout")
+}
+
+func (sh SourceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	http.FileServer(http.Dir("./"))
+	fmt.Fprintf(w, "filesss")
+}
+
 func main() {
-
-	resp := ResponseHandler{"halloo"}                 //
-	http.Handle("/halloo", resp)                      //on adress/halloo show resp(implements interface)
-	http.Handle("/", http.FileServer(http.Dir("./"))) // returns files
-	http.Handle("/redirect", http.RedirectHandler("https://google.com", 301))
-
 	// another way
 	// http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 	// 	fmt.Fprintln(w, "hello")
 	// })
+
+	//resp := ResponseHandler{"halloo"}                 //
+	//http.Handle("/halloo", resp)                      //on adress/halloo show resp(implements interface)
+	//http.Handle("/", http.FileServer(http.Dir("./"))) // returns files
+	//http.Handle("/redirect", http.RedirectHandler("https://google.com", 301))
+
+	//Задание
+
+	rhhello := ResponseHandler2{"hello human"}
+	rhtimeout := ResponseHandler3{"request timeout"}
+	http.Handle("/hello", rhhello)
+	http.Handle("/longPing", rhtimeout)
+
+	//file srver for root - easy
+	fs := http.FileServer(http.Dir("./"))
+	http.Handle("/", fs)
+
+	// not for root:
+	//works with strip prefixes/!!!!
+
+	http.Handle("/source/", http.StripPrefix("/source/", http.FileServer(http.Dir("./"))))
 
 	http.ListenAndServe(":8080", nil)
 
